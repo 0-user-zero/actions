@@ -4,6 +4,52 @@ Tests what was just merged, in your own CI. Your workflow starts your app on loc
 
 **User Zero never receives your code.** It receives the merged pull request's title, description, number and commit, plus the HTTP traffic of your running app while it's tested. Your secrets and database stay in your CI.
 
+## Before anything else: your app must be running
+
+**The action does not start your app.** It tests the app that is already running on the runner, so the steps before it, in the same job, have to start it, the way your own end-to-end tests already do.
+
+1. **Start everything the app needs:** database, cache, workers, a seeded test user. For example `docker compose up -d --wait`, or `GitHub services:` containers plus `npm run build && npm start &`.
+2. **Leave it running in the background.** `docker compose up -d`, `npm start &` or a service container all return at once and keep running. A command that stays in the foreground (plain `npm start`) never finishes, so the job would wait on it and never reach the action.
+3. **Make it answer on one port on `localhost`.** The action waits up to `wait-timeout` (180 seconds by default) for the port to respond, then starts the test.
+
+The app has to stay up the whole time User Zero is testing it. It stops when the job ends, and the action is the last step, so put the app's start-up and the action in the **same job**. If you can run your app and open it in a browser on `localhost`, the rest of the setup is only the key and the test login.
+
+## Quick start
+
+A complete workflow. The first step starts your app and leaves it running; the second one tests it. Replace `app.acme.com` with your site as it is known in User Zero and `3000` with the port your app listens on.
+
+```yaml
+name: User Zero QA
+on:
+  push:
+    branches: [main]
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+
+      # 1. Start your app and leave it running: the same steps your end-to-end tests use.
+      #    It must listen on localhost and create the test user (your seed step).
+      - run: docker compose up -d --wait
+        env:
+          TEST_USER_EMAIL: ${{ secrets.USERZERO_TEST_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.USERZERO_TEST_PASSWORD }}
+
+      # 2. Test it with User Zero.
+      - uses: 0-user-zero/actions@v1
+        with:
+          api-key: ${{ secrets.USERZERO_API_KEY }}
+          site: app.acme.com
+          port: 3000
+          login-email: ${{ secrets.USERZERO_TEST_EMAIL }}
+          login-password: ${{ secrets.USERZERO_TEST_PASSWORD }}
+```
+
+Three secrets go with it: `USERZERO_API_KEY`, `USERZERO_TEST_EMAIL` and `USERZERO_TEST_PASSWORD` (see "Setup" below). Start with a dry run, which checks everything and tests nothing: add `dry-run: true` to the action step, run it once, and take it out when it passes. The longer example under "Setup" shows the same thing with a database service and a manual dry-run switch.
+
 ## Setup
 
 1. In User Zero, make sure your site is approved.
