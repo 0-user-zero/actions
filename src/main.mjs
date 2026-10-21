@@ -28,6 +28,8 @@ import {
     sleep,
     userZero,
     warning,
+    group,
+    withRetries,
 } from './lib.mjs';
 import { ensureCloudflared, startTunnel, stopTunnel } from './cloudflared.mjs';
 import { NO_LOGIN_TO_CHECK, appNeverAnswered, explainApiError, explainLoginCheck, explainOutcome, explainStartPage, normalizeSite, tunnelNeverReachable } from './explain.mjs';
@@ -90,6 +92,16 @@ async function main() {
             return;
         }
         log(change.pr ? `Testing PR #${change.pr.number} "${change.pr.title}"` : `Testing commit ${sha.slice(0, 7)}`);
+        group('What was sent to User Zero', [
+            change.pr ? `Pull request: #${change.pr.number} ${change.pr.title}` : 'Pull request: none (testing the commit message)',
+            `Commit: ${sha}`,
+            `Site: ${site}`,
+            `Start page: ${path}`,
+            'Test login: from your own secrets (never printed)',
+            'No code and no diff. The tester is asked to test:',
+            '',
+            scope,
+        ]);
     }
 
     // 2. Your app must be up before anything is opened or charged.
@@ -99,7 +111,9 @@ async function main() {
     if (appHint) warning(appHint);
 
     // 3. The tunnel. Its id is saved first, so the cleanup step closes it whatever happens next.
-    const tunnel = await uz('POST', '/ci/tunnels', { port });
+    const tunnel = await withRetries(() => uz('POST', '/ci/tunnels', { port }), {
+        onRetry: (err, attempt, wait) => warning(`User Zero could not open the tunnel (${err.detail}). Trying again in ${wait / 1000} seconds (attempt ${attempt + 1} of 3).`),
+    });
     mask(tunnel.connectorToken);
     saveState('tunnel_id', tunnel.tunnelId);
     const binary = await ensureCloudflared();
@@ -141,6 +155,8 @@ async function main() {
             repo,
             sha,
             ...(change.pr ? { prNumber: change.pr.number, prUrl: change.pr.html_url, prTitle: change.pr.title.slice(0, 300) } : {}),
+            ...(branchOf(change) ? { branch: branchOf(change) } : {}),
+            ...(process.env.GITHUB_ACTOR ? { actor: process.env.GITHUB_ACTOR.slice(0, 100) } : {}),
             workflowRunUrl,
         },
     });
@@ -168,6 +184,9 @@ async function main() {
         errorAnnotation(`${failing.length} ${failOn === 'high' ? 'critical or high ' : ''}bug(s) found (fail-on: ${failOn}).`);
     }
 }
+
+/** The branch the change came from: the pull request's own branch, else the one that was pushed. */
+const branchOf = (change) => (change.pr?.head?.ref || process.env.GITHUB_REF_NAME || '').slice(0, 250);
 
 /** The checks User Zero can make before anything is booted; a failed one stops the job with what to change. */
 async function runPreflight(uz, site, login, inline) {

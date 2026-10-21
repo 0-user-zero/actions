@@ -48,12 +48,41 @@ export function readEvent() {
 
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/**
+ * Prints lines in a collapsible group of the job log. Every line gets a prefix, so text taken from a pull request can
+ * never start with `::` and act as a workflow command.
+ */
+export function group(title, lines) {
+    console.log(`::group::${escapeData(title)}`);
+    for (const line of lines) for (const part of String(line).split('\n')) console.log(`| ${part}`);
+    console.log('::endgroup::');
+}
+
 /** A failed call to the User Zero API. `status` is 0 when the request never got an answer (`network`). */
 export class ApiError extends Error {
     constructor(method, path, status, detail, network = false) {
         super(`User Zero ${method} ${path}: ${detail}`);
         this.name = 'ApiError';
         Object.assign(this, { method, path, status, detail, network });
+    }
+}
+
+/**
+ * Runs `fn`, and runs it again when User Zero answered with a server error or could not be reached: a moment's trouble on
+ * our side should not fail someone's merge. Anything else (a refused key, a bad request) fails at once. `onRetry` is told
+ * which attempt failed and how long it waits.
+ */
+export async function withRetries(fn, { attempts = 3, delaysMs = [3000, 8000], onRetry } = {}) {
+    for (let attempt = 1; ; attempt++) {
+        try {
+            return await fn();
+        } catch (err) {
+            const transient = err instanceof ApiError && (err.network || err.status >= 500);
+            if (!transient || attempt >= attempts) throw err;
+            const wait = delaysMs[Math.min(attempt - 1, delaysMs.length - 1)];
+            onRetry?.(err, attempt, wait);
+            await sleep(wait);
+        }
     }
 }
 

@@ -1,7 +1,7 @@
 // Run with: node --test integrations/github-action/test/
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ApiError, UserError, globToRegExp } from '../src/lib.mjs';
+import { ApiError, UserError, globToRegExp, group, withRetries } from '../src/lib.mjs';
 import { resolveLogin } from '../src/login.mjs';
 import {
     appNeverAnswered,
@@ -157,4 +157,56 @@ test('a merged pull request is context when instructions exist and the task othe
     const change = { message: '', pr: { number: 12, title: 'Bump deps', body: 'Routine.' } };
     assert.match(buildScope(change, 'Check checkout.'), /^Check checkout\.\n\nFor context, the change that was just merged is pull request #12/);
     assert.match(buildScope(change, ''), /^Test the change that was just merged in pull request #12: "Bump deps"/);
+});
+
+test('a server error is tried again, then passed on after the last attempt', async () => {
+    let calls = 0;
+    const waits = [];
+    const ok = await withRetries(
+        async () => {
+            calls++;
+            if (calls < 3) throw new ApiError('POST', '/ci/tunnels', 502, 'could not open a tunnel');
+            return 'opened';
+        },
+        { delaysMs: [0, 0], onRetry: (err, attempt, wait) => waits.push([attempt, wait]) },
+    );
+    assert.equal(ok, 'opened');
+    assert.equal(calls, 3);
+    assert.deepEqual(waits, [[1, 0], [2, 0]]);
+
+    let always = 0;
+    await assert.rejects(
+        withRetries(async () => { always++; throw new ApiError('POST', '/ci/tunnels', 503, 'busy'); }, { delaysMs: [0, 0] }),
+        (err) => err.status === 503,
+    );
+    assert.equal(always, 3);
+});
+
+test('a network failure is tried again, a refused request is not', async () => {
+    let network = 0;
+    assert.equal(
+        await withRetries(async () => { if (++network < 2) throw new ApiError('POST', '/ci/tunnels', 0, 'ECONNRESET', true); return 'ok'; }, { delaysMs: [0] }),
+        'ok',
+    );
+    let refused = 0;
+    await assert.rejects(withRetries(async () => { refused++; throw new ApiError('POST', '/ci/tunnels', 401, 'rejected the API key'); }, { delaysMs: [0] }), (err) => err.status === 401);
+    assert.equal(refused, 1);
+    let other = 0;
+    await assert.rejects(withRetries(async () => { other++; throw new Error('not an API error'); }, { delaysMs: [0] }), /not an API error/);
+    assert.equal(other, 1);
+});
+
+test('text from a pull request cannot act as a workflow command in the log', () => {
+    const lines = [];
+    const original = console.log;
+    console.log = (line) => lines.push(line);
+    try {
+        group('What was sent', ['plain', '::error::injected\n::add-mask::secret']);
+    } finally {
+        console.log = original;
+    }
+    assert.equal(lines[0], '::group::What was sent');
+    assert.equal(lines.at(-1), '::endgroup::');
+    assert.ok(lines.slice(1, -1).every((l) => l.startsWith('| ')), 'every printed line is prefixed');
+    assert.ok(!lines.slice(1, -1).some((l) => l.startsWith('::')), 'none starts with ::');
 });

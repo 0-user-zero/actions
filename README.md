@@ -72,6 +72,13 @@ Prefer not to write the start-up yourself? Paste [`SETUP_PROMPT.md`](SETUP_PROMP
 - **User Zero doesn't keep it.** It's encrypted until the session starts, then wiped, and never logged.
 - **Email and password only.** Google sign-in, MFA codes and captchas can't be completed.
 
+## Skip a merge
+
+Not every merge needs a test. The action skips it, uses no credit, and says why in the job summary ("Not tested: …") when:
+
+- **The pull request has the `no-qa` label.** Add it before you merge. Change the label with `skip-label`.
+- **Only docs changed.** Merges that touch only `**/*.md`, `docs/**` or `.github/**` are skipped. Change the list with `ignore-paths`, for example `ignore-paths: "**/*.md,docs/**,.github/**,**/*.test.ts"`.
+
 ## More
 
 <details>
