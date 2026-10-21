@@ -1,0 +1,75 @@
+name: User Zero QA
+description: Tests what was just merged, in your own CI. Your app runs on localhost; User Zero reaches it through a short-lived tunnel and never sees your code.
+author: User Zero
+branding:
+  icon: check-circle
+  color: green
+
+inputs:
+  api-key:
+    description: Your User Zero API key. Store it as a repository secret.
+    required: true
+  site:
+    description: The site this repo is, as approved in your User Zero account (for example app.acme.com). Its saved test logins and context are used.
+    required: true
+  port:
+    description: The localhost port your app is listening on in this job.
+    required: true
+  path:
+    description: The page to start from.
+    default: /
+  login-email:
+    description: The test user's email. Pass it from a repository secret, the same one your seed step uses. It is used for this session only and is not kept. Also read from the USERZERO_LOGIN_EMAIL environment variable.
+    default: ''
+  login-password:
+    description: The test user's password. Pass it from a repository secret. It is used for this session only and is not kept. Also read from the USERZERO_LOGIN_PASSWORD environment variable.
+    default: ''
+  login:
+    description: The name of a login saved in User Zero, to use instead of login-email and login-password. Empty uses the site's default saved login.
+    default: ''
+  login-check:
+    description: In a dry run, also check that the tester can sign in to your app with the login (a short real session that only signs in). Set to false for apps with no login.
+    default: 'true'
+  scope:
+    description: Extra instructions for the tester, added after what the merged pull request describes.
+    default: ''
+  dry-run:
+    description: Check your setup without testing anything. It checks your User Zero account, starts the tunnel, and confirms User Zero can reach your app through it, then stops. No credit is used. Run it from a manual trigger to get a workflow right.
+    default: 'false'
+  fail-on:
+    description: "Fail the job when bugs are found: none, high (critical or high bugs), or any."
+    default: none
+  comment:
+    description: Comment the results on the merged pull request.
+    default: 'true'
+  skip-label:
+    description: A pull request with this label is not tested.
+    default: no-qa
+  ignore-paths:
+    description: Comma-separated globs. A change that only touches files matching these is not tested.
+    default: '**/*.md,docs/**,.github/**'
+  wait-timeout:
+    description: Seconds to wait for your app to answer on the port before giving up.
+    default: '180'
+  github-token:
+    description: Used to read the merged pull request and to comment on it.
+    default: ${{ github.token }}
+  api-url:
+    description: The User Zero API address.
+    default: https://api.user-zero.com
+
+outputs:
+  dry-run:
+    description: "For a dry run: passed, or passed-with-warnings. A failed dry run fails the job."
+  run-id:
+    description: The User Zero session id.
+  report-url:
+    description: Where the report can be read.
+  bug-count:
+    description: How many bugs were found.
+
+runs:
+  using: node24
+  main: src/main.mjs
+  post: src/post.mjs
+  post-if: always()
