@@ -335,8 +335,12 @@ async function waitForTunnel(uz, tunnelId, path) {
     throw new UserError(tunnelNeverReachable(tries, last?.detail ?? 'no answer'));
 }
 
+/** What the job log says about each stage, in words a customer can use: no internal counters or state names. */
+const STAGES = { queued: 'waiting for a free slot', dispatching: 'starting the tester', rendering: 'preparing the report' };
+
 async function waitForRun(uz, runId, label) {
     let lastLine = '';
+    let testingSince = 0;
     for (;;) {
         const run = await uz('GET', `/runs/${runId}`).catch((err) => {
             // A blip in the API must not end a session that is going fine.
@@ -344,7 +348,15 @@ async function waitForRun(uz, runId, label) {
             return null;
         });
         if (run) {
-            const line = run.state === 'running' ? `… ${label} (step ${run.lastStep ?? 0}${run.bugCount && label === 'testing' ? `, ${run.bugCount} bug(s) so far` : ''})` : `… ${run.state}`;
+            let line;
+            if (run.state === 'running') {
+                testingSince ||= Date.now();
+                // A line every two minutes: enough to see it is alive, not a stream.
+                const minutes = Math.floor((Date.now() - testingSince) / 120_000) * 2;
+                line = minutes > 0 ? `… ${label} (${minutes} min so far)` : `… ${label}`;
+            } else {
+                line = `… ${STAGES[run.state] ?? run.state}`;
+            }
             if (line !== lastLine) log(line);
             lastLine = line;
             if (FINISHED_STATES.includes(run.state)) return run;

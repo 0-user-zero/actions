@@ -54,6 +54,8 @@ jobs:
           login-password: ${{ secrets.USERZERO_TEST_PASSWORD }}
 ```
 
+The workflow above tests every merge to `main`. To test a pull request before it merges, add `pull_request:` under `on:` too (GitHub doesn't give secrets to pull requests from forks).
+
 > [!IMPORTANT]
 > **Your app must be running before the action.** The action doesn't start it.
 > - Start it in the **background** (`docker compose up -d`, `npm start &`). A command that stays in the foreground blocks the job.
@@ -125,6 +127,7 @@ The log says what happened and what to change. The common ones:
 <summary><b>Limits</b></summary>
 
 - Linux runners only.
+- Up to 10 sessions at once per account. Merges at the same moment run side by side. An 11th at the same time fails with a message, so tell us if your team merges that often.
 - Your app must serve its frontend and API from one port. Calls to another `localhost` port from the browser fail.
 - WebSockets aren't supported through the tunnel yet.
 

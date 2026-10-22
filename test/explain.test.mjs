@@ -210,3 +210,11 @@ test('text from a pull request cannot act as a workflow command in the log', () 
     assert.ok(lines.slice(1, -1).every((l) => l.startsWith('| ')), 'every printed line is prefixed');
     assert.ok(!lines.slice(1, -1).some((l) => l.startsWith('::')), 'none starts with ::');
 });
+
+test('a failure on our side never shows its internal note in the job log', () => {
+    const ours = explainOutcome({ state: 'failed', outcomeCode: 'our_error', error: 'no heartbeat for over 5 minutes — presumed dead' });
+    assert.ok(!/heartbeat|presumed|wall-clock/.test(`${ours.title} ${ours.detail}`));
+    const rejected = explainOutcome({ state: 'rejected', outcomeCode: 'scope_rejected', error: 'the description was empty' });
+    assert.ok(rejected.detail.includes('the description was empty'), 'a reason written for the customer is still shown');
+    assert.ok(!/credit was returned/.test(explainOutcome({ state: 'canceled' }).detail), 'a canceled session does not promise a refund');
+});

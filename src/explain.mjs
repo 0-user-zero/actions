@@ -99,8 +99,11 @@ export function tunnelNeverReachable(tries, detail) {
 export function explainOutcome(run, ctx = {}) {
     const site = ctx.site ?? 'your site';
     const login = ctx.login ? `"${ctx.login}"` : 'the saved login';
-    const evidence = run.error ? ` (${String(run.error).replace(/[.\s]+$/, '')})` : '';
-    if (run.state === 'canceled') return { title: 'The session was canceled', detail: 'It was stopped before it finished, for example because the job was canceled. The credit was returned.' };
+    // The run's own error text is shown only where it was written for a customer (what the app said at sign-in, why a scope was
+    // rejected). For a failure on our side it is an internal note ("no heartbeat…"), so it stays out of their log.
+    const forCustomers = run.outcomeCode === 'login_failed' || run.outcomeCode === 'scope_rejected';
+    const evidence = forCustomers && run.error ? ` (${String(run.error).replace(/[.\s]+$/, '')})` : '';
+    if (run.state === 'canceled') return { title: 'The session was canceled', detail: 'It was stopped before it finished, for example because the job was canceled.' };
     switch (run.outcomeCode) {
         case 'login_failed':
             return {
