@@ -11,6 +11,36 @@ Tests every merge in your own CI, like a real user would, and tells you what's b
 3. User Zero's tester signs in and uses the app, guided by the pull request.
 4. The bugs it finds go to the job summary and a comment on the pull request.
 
+## Your code stays yours
+
+User Zero tests your app the way a visitor would: through a browser. We don't see your code, and we don't want to.
+
+| What User Zero sees | What User Zero never sees |
+|---|---|
+| The pages your app serves to any visitor | Your repository and source files |
+| The pull request's title and description | Your environment variables and secrets |
+| The test user you give it | Your runner, its files and your network |
+
+**Why a tunnel is safe.** The tunnel is [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/), the same technology companies use to publish internal apps without opening their firewall.
+
+- **Outbound only.** Your runner opens the connection to Cloudflare. Nothing connects in, and no port is opened. Cloudflare's own words: it "creates outbound-only connections to Cloudflare's global network."
+- **Encrypted.** Traffic runs over TLS between your runner and Cloudflare.
+- **Locked.** The address `ci-<id>.user-zero.com` is behind [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/access-controls/). Only User Zero's tester can open it. Anyone else gets a 403.
+- **Short-lived.** It exists for one session. When the job ends, the tunnel, its address and its access rule are deleted.
+
+The tester only ever loads what a browser loads. It doesn't read or store your scripts.
+
+**Build it like production.** Start your app from a production build, and leave source maps out.
+
+- **Safety.** Without source maps, the browser never receives your original source. It only gets what your real users get, minified.
+- **Better tests.** A production build is what your users run. A dev server can hide bugs, or show ones that don't exist.
+
+| Do | Don't |
+|---|---|
+| `npm run build` and `npm start` | A dev server (`npm run dev`) |
+| Build without source maps | Publish `.map` files next to your scripts |
+| Test-mode keys for third parties | Production secrets |
+
 ## Quick start
 
 ### 1. Add three secrets
@@ -32,7 +62,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     permissions:
       contents: read
       pull-requests: write
@@ -40,6 +70,7 @@ jobs:
       - uses: actions/checkout@v7
 
       # Start your app and leave it running (what your end-to-end tests already do).
+      # Use the production build, without source maps, started in the background.
       - run: docker compose up -d --wait
         env:
           TEST_USER_EMAIL: ${{ secrets.USERZERO_TEST_EMAIL }}
@@ -59,6 +90,7 @@ The workflow above tests every merge to `main`. To test a pull request before it
 > [!IMPORTANT]
 > **Your app must be running before the action.** The action doesn't start it.
 > - Start it in the **background** (`docker compose up -d`, `npm start &`). A command that stays in the foreground blocks the job.
+> - Start the **production build**, without source maps ([why](#your-code-stays-yours)).
 > - Make it answer on **one `localhost` port**. The action waits up to 3 minutes.
 > - Make your start-up **create the test user** from the two secrets above.
 

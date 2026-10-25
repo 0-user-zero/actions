@@ -21,7 +21,7 @@ Do this:
 
 2. Create .github/workflows/user-zero.yml:
    - triggers: push to main, and workflow_dispatch with a boolean input `dry_run` (default true);
-   - concurrency group `user-zero` with cancel-in-progress false; permissions `contents: read` and `pull-requests: write`; timeout-minutes 60; runs-on ubuntu-latest;
+   - concurrency group `user-zero` with cancel-in-progress false; permissions `contents: read` and `pull-requests: write`; timeout-minutes 90 (a User Zero session can run up to an hour); runs-on ubuntu-latest;
    - use actions/checkout@v7 and, for Node, actions/setup-node@v7 with the Node version this repo uses;
    - services as GitHub `services:` containers with health checks (Postgres, Redis, etc.), or `docker compose up -d --wait` if the repo is built around compose;
    - install, build, migrate, then SEED, then start the app IN THE BACKGROUND (for example `npm start &`) on a single port;
@@ -38,6 +38,8 @@ Do this:
 3. The seed step must create a test user from those same two secrets (pass them to the seed step as environment variables from `secrets.USERZERO_TEST_EMAIL` and `secrets.USERZERO_TEST_PASSWORD`), with whatever role, organisation, plan or onboarding state is needed for that user to land in the normal signed-in app (no onboarding wall, no email verification, no MFA). Add it to the existing seed script or create a small one. Do not print the password in logs. This is the only app code you may change; keep the change minimal. The action signs in with the same two values, so they must be the same secrets in both places.
 
 4. Third-party services: use test-mode keys or local stubs, never production secrets. List every environment variable the app needs from .env.example, give safe CI values where they are obvious, and for anything that needs a real value write `# TODO: ask the team` and list it for me at the end. Do not invent keys.
+
+   Start the app from its PRODUCTION build (build step, then the production start command; not a dev server), and make sure the build does not emit source maps (for example `GENERATE_SOURCEMAP=false`, `productionBrowserSourceMaps: false`, `build.sourcemap: false`, depending on the stack). The tester then only receives what real users get, and the original source stays on the runner.
 
 5. Check these constraints and tell me about every one that is not met:
    - the browser must reach everything through ONE origin: if the frontend calls a different localhost port for its API, serve the API through the same port (a dev proxy or /api routes) or tell me it needs doing;
