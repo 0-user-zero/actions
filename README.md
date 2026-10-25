@@ -108,6 +108,10 @@ The tunnel is **[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare
 - **Unguessable, and not relying on it.** The address contains 80 random bits, so it can't be guessed. But the address is not the lock: even someone who knew it would still be refused by Access.
 - **Short-lived.** It exists for one session. When the job ends, the tunnel, its address and its access rule are deleted.
 
+**Try it yourself.** Anyone who opens a tunnel address without User Zero's credentials gets this page from Cloudflare Access, not your app:
+
+<p align="center"><img src="assets/cloudflare-403.png" alt="Cloudflare Access answering 403 Forbidden to a visitor without credentials" width="420"></p>
+
 The tester only ever loads what a browser loads. It doesn't read or store your scripts.
 
 ### Build it like production
