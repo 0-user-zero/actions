@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="260" viewBox="0 0 880 260" role="img" aria-label="User Zero tests your app like a real user. We never see your code.">
+  <style>
+    .bg{fill:#f5f5f7}.t{fill:#1d1d1f}.s{fill:#6e6e73}.c{fill:#fff;stroke:#d2d2d7}.g{fill:#0071e3}
+    text{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif}
+    @media (prefers-color-scheme:dark){.bg{fill:#000}.t{fill:#f5f5f7}.s{fill:#a1a1a6}.c{fill:#1c1c1e;stroke:#38383a}.g{fill:#2997ff}}
+  </style>
+  <rect class="bg" width="880" height="260" rx="28"/>
+  <text class="t" x="440" y="92" text-anchor="middle" font-size="44" font-weight="700" letter-spacing="-1">We never see your code.</text>
+  <text class="s" x="440" y="130" text-anchor="middle" font-size="20">User Zero tests every merge like a real user would, from inside your CI.</text>
+  <g font-size="15" font-weight="600" text-anchor="middle">
+    <rect class="c" x="130" y="168" width="200" height="48" rx="24"/><text class="t" x="230" y="198">Runs in your CI</text>
+    <rect class="c" x="340" y="168" width="200" height="48" rx="24"/><text class="t" x="440" y="198">Outbound-only tunnel</text>
+    <rect class="c" x="550" y="168" width="200" height="48" rx="24"/><text class="g" x="650" y="198">Locked by Cloudflare</text>
+  </g>
+</svg>

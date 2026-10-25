@@ -1,47 +1,30 @@
+<div align="center">
+
+<img src="assets/hero.svg" alt="We never see your code." width="100%">
+
 # User Zero Action
 
-Tests every merge in your own CI, like a real user would, and tells you what's broken.
+**Tests every merge in your own CI, like a real user would, and tells you what's broken.**
 
-**Your code never leaves your CI.** User Zero sees the pull request's title and description, and your running app through a short-lived tunnel.
+[Quick start](#quick-start) · [What we see and never see](#what-we-see-and-never-see) · [How the tunnel is locked](#secured-by-cloudflare) · [Options](#more)
+
+</div>
+
+<br>
 
 ## How it works
 
-1. Your workflow starts your app on `localhost`.
-2. The action opens a secure, outbound-only tunnel to it.
-3. User Zero's tester signs in and uses the app, guided by the pull request.
-4. The bugs it finds go to the job summary and a comment on the pull request.
-
-## Your code stays yours
-
-User Zero tests your app the way a visitor would: through a browser. We don't see your code, and we don't want to.
-
-| What User Zero sees | What User Zero never sees |
+| | |
 |---|---|
-| The pages your app serves to any visitor | Your repository and source files |
-| The pull request's title and description | Your environment variables and secrets |
-| The test user you give it | Your runner, its files and your network |
-
-**Why a tunnel is safe.** The tunnel is [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/), the same technology companies use to publish internal apps without opening their firewall.
-
-- **Outbound only.** Your runner opens the connection to Cloudflare. Nothing connects in, and no port is opened. Cloudflare's own words: it "creates outbound-only connections to Cloudflare's global network."
-- **Encrypted.** Traffic runs over TLS between your runner and Cloudflare.
-- **Locked.** The address `ci-<id>.user-zero.com` is behind [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/access-controls/). Only User Zero's tester can open it. Anyone else gets a 403.
-- **Short-lived.** It exists for one session. When the job ends, the tunnel, its address and its access rule are deleted.
-
-The tester only ever loads what a browser loads. It doesn't read or store your scripts.
-
-**Build it like production.** Start your app from a production build, and leave source maps out.
-
-- **Safety.** Without source maps, the browser never receives your original source. It only gets what your real users get, minified.
-- **Better tests.** A production build is what your users run. A dev server can hide bugs, or show ones that don't exist.
-
-| Do | Don't |
-|---|---|
-| `npm run build` and `npm start` | A dev server (`npm run dev`) |
-| Build without source maps | Publish `.map` files next to your scripts |
-| Test-mode keys for third parties | Production secrets |
+| **1 &nbsp; Start** | Your workflow starts your app on `localhost`. |
+| **2 &nbsp; Connect** | The action opens a secure, outbound-only tunnel to it. |
+| **3 &nbsp; Test** | User Zero's tester signs in and uses the app, guided by the pull request. |
+| **4 &nbsp; Report** | The bugs it finds go to the job summary and a comment on the pull request. |
 
 ## Quick start
+
+> [!TIP]
+> Three steps. Do a [dry run](#3-do-a-dry-run-first) first. It is free.
 
 ### 1. Add three secrets
 
@@ -90,7 +73,7 @@ The workflow above tests every merge to `main`. To test a pull request before it
 > [!IMPORTANT]
 > **Your app must be running before the action.** The action doesn't start it.
 > - Start it in the **background** (`docker compose up -d`, `npm start &`). A command that stays in the foreground blocks the job.
-> - Start the **production build**, without source maps ([why](#your-code-stays-yours)).
+> - Start the **production build**, without source maps ([why](#build-it-like-production)).
 > - Make it answer on **one `localhost` port**. The action waits up to 3 minutes.
 > - Make your start-up **create the test user** from the two secrets above.
 
@@ -99,6 +82,47 @@ The workflow above tests every merge to `main`. To test a pull request before it
 Add `dry-run: true` to the action step and run the workflow. It checks everything and tests nothing, so it's free. When it's green, remove the line.
 
 Prefer not to write the start-up yourself? Paste [`SETUP_PROMPT.md`](SETUP_PROMPT.md) into your coding assistant and it writes the workflow for your repo.
+
+## 🔒 Your code stays yours
+
+> [!NOTE]
+> **We don't see your code, and we don't want to.** User Zero tests your app the way a visitor would: through a browser. Your code never leaves your CI.
+
+### What we see and never see
+
+| What User Zero sees | What User Zero never sees |
+|---|---|
+| The pages your app serves to any visitor | Your repository and source files |
+| The pull request's title and description | Your environment variables and secrets |
+| The test user you give it | Your runner, its files and your network |
+
+### Secured by Cloudflare
+
+<img src="assets/cloudflare.svg" alt="Secured by Cloudflare Tunnel and Cloudflare Access" width="100%">
+
+The tunnel is **[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/)**, the same technology companies use to publish internal apps without opening their firewall.
+
+- **Outbound only.** Your runner opens the connection to Cloudflare. Nothing connects in, and no port is opened. Cloudflare's own words: "cloudflared initiates an outbound connection through your firewall from the origin to the Cloudflare global network." <br>→ Cloudflare docs: [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/) · [Tunnel with firewall](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/configure-tunnels/tunnel-with-firewall/)
+- **Encrypted.** Traffic runs over TLS between your runner and Cloudflare. <br>→ Cloudflare docs: [Tunnel cipher suites](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/configure-tunnels/cipher-suites/)
+- **Locked.** The address `ci-<id>.user-zero.com` is behind Cloudflare Access, which denies by default. Only User Zero's tester, who carries a service token, can open it. Anyone else gets a 403. <br>→ Cloudflare docs: [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/access-controls/) · [Access policies (deny by default)](https://developers.cloudflare.com/cloudflare-one/access-controls/policies/) · [Service tokens](https://developers.cloudflare.com/cloudflare-one/access-controls/service-credentials/service-tokens/)
+- **Unguessable, and not relying on it.** The address contains 80 random bits, so it can't be guessed. But the address is not the lock: even someone who knew it would still be refused by Access.
+- **Short-lived.** It exists for one session. When the job ends, the tunnel, its address and its access rule are deleted.
+
+The tester only ever loads what a browser loads. It doesn't read or store your scripts.
+
+### Build it like production
+
+Start your app from a production build, and leave source maps out.
+
+- **Safety.** Without source maps, the browser never receives your original source. It only gets what your real users get, minified.
+- **Better tests.** A production build is what your users run. A dev server can hide bugs, or show ones that don't exist.
+
+| Do | Don't |
+|---|---|
+| `npm run build` and `npm start` | A dev server (`npm run dev`) |
+| Build without source maps | Publish `.map` files next to your scripts |
+| Test-mode keys for third parties | Production secrets |
+
 
 ## The test login
 

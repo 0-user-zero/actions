@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="330" viewBox="0 0 880 330" role="img" aria-label="Secured by Cloudflare Tunnel and Cloudflare Access">
+  <style>
+    .bg{fill:#f5f5f7}.t{fill:#1d1d1f}.s{fill:#6e6e73}.c{fill:#fff;stroke:#d2d2d7}.o{fill:#f6821f}
+    text{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif}
+    @media (prefers-color-scheme:dark){.bg{fill:#000}.t{fill:#f5f5f7}.s{fill:#a1a1a6}.c{fill:#1c1c1e;stroke:#38383a}}
+  </style>
+  <rect class="bg" width="880" height="330" rx="28"/>
+  <circle class="o" cx="60" cy="56" r="9"/>
+  <text class="o" x="80" y="62" font-size="16" font-weight="700" letter-spacing="1.5">SECURED BY CLOUDFLARE</text>
+  <text class="t" x="40" y="108" font-size="34" font-weight="700" letter-spacing="-0.6">Nothing connects in. Only we can get through.</text>
+  <g>
+    <rect class="c" x="40" y="140" width="190" height="150" rx="20"/>
+    <text class="t" x="60" y="178" font-size="19" font-weight="700">Outbound only</text>
+    <text class="s" font-size="14"><tspan x="60" y="206">Your runner connects</tspan><tspan x="60" y="226">out. No port opens.</tspan></text>
+    <rect class="c" x="245" y="140" width="190" height="150" rx="20"/>
+    <text class="t" x="265" y="178" font-size="19" font-weight="700">Encrypted</text>
+    <text class="s" font-size="14"><tspan x="265" y="206">TLS from your runner</tspan><tspan x="265" y="226">to Cloudflare.</tspan></text>
+    <rect class="c" x="450" y="140" width="190" height="150" rx="20"/>
+    <text class="t" x="470" y="178" font-size="19" font-weight="700">Locked</text>
+    <text class="s" font-size="14"><tspan x="470" y="206">Cloudflare Access: only</tspan><tspan x="470" y="226">our tester. Others: 403.</tspan></text>
+    <rect class="c" x="655" y="140" width="185" height="150" rx="20"/>
+    <text class="t" x="675" y="178" font-size="19" font-weight="700">Short-lived</text>
+    <text class="s" font-size="14"><tspan x="675" y="206">Deleted when the</tspan><tspan x="675" y="226">job ends.</tspan></text>
+  </g>
+</svg>
